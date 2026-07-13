@@ -62,8 +62,8 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                   children: [
                     TabBar(
                       tabs: [
-                        Tab(text: isEditing && existingSub?.type == SubscriptionType.recurring ? 'Edit Subscription' : (isEditing ? 'Subscription' : 'Subscription')),
-                        Tab(text: isEditing && existingSub?.type == SubscriptionType.prepaidRecharge ? 'Edit Recharge' : (isEditing ? 'Recharge Plan' : 'Recharge Plan')),
+                        Tab(text: isEditing && existingSub.type == SubscriptionType.recurring ? 'Edit Subscription' : (isEditing ? 'Subscription' : 'Subscription')),
+                        Tab(text: isEditing && existingSub.type == SubscriptionType.prepaidRecharge ? 'Edit Recharge' : (isEditing ? 'Recharge Plan' : 'Recharge Plan')),
                       ],
                     ),
                     Expanded(

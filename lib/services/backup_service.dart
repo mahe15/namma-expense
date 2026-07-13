@@ -45,9 +45,11 @@ class BackupService {
 
       // Share the file
       final xFile = XFile(file.path);
-      await Share.shareXFiles(
-        [xFile], 
-        text: 'NammaExpense Backup - $dateStr',
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [xFile],
+          text: 'NammaExpense Backup - $dateStr',
+        ),
       );
       
     } catch (e) {
@@ -71,10 +73,16 @@ class BackupService {
       if (result == null || result.files.single.path == null) return; // User canceled
 
       if (!context.mounted) return;
+      
+      final expenseProvider = Provider.of<ExpenseProvider>(context, listen: false);
+      final subscriptionProvider = Provider.of<SubscriptionProvider>(context, listen: false);
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
 
       // 2. Read and Validate
       final file = File(result.files.single.path!);
       final fileContent = await file.readAsString();
+
+      if (!context.mounted) return;
 
       // Show immediate loading indicator
       showDialog(
@@ -136,7 +144,8 @@ class BackupService {
         ),
       );
 
-      if (confirm != true || !context.mounted) return;
+      if (confirm != true) return;
+      if (!context.mounted) return;
 
       // Show restoring indicator
       showDialog(
@@ -172,15 +181,12 @@ class BackupService {
       await dbHelper.insertTransactionsBatch(txns);
       await dbHelper.insertSubscriptionsBatch(subs);
 
-      if (!context.mounted) return;
-      
       // SharedPreferences update
-      final userProvider = Provider.of<UserProvider>(context, listen: false);
       await userProvider.importSettings(settingsData);
 
       // Refresh providers
-      await Provider.of<ExpenseProvider>(context, listen: false).fetchTransactions();
-      await Provider.of<SubscriptionProvider>(context, listen: false).fetchSubscriptions();
+      await expenseProvider.fetchTransactions();
+      await subscriptionProvider.fetchSubscriptions();
 
       if (!context.mounted) return;
       Navigator.of(context).pop(); // Close restoring dialog
@@ -194,7 +200,10 @@ class BackupService {
 
     } catch (e) {
       if (context.mounted) {
-        Navigator.of(context).pop(); // Close any loading dialog
+        // Since we might have opened a dialog, let's close it if we are still mounted.
+        try {
+          Navigator.of(context).pop();
+        } catch (_) {}
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Import failed: $e'),

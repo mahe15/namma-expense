@@ -84,15 +84,18 @@ class TransactionList extends StatelessWidget {
             child: Icon(Icons.delete, color: Colors.white, size: screenWidth * 0.06),
           ),
           confirmDismiss: (direction) async {
+            final expenseProvider = Provider.of<ExpenseProvider>(context, listen: false);
             if (direction == DismissDirection.startToEnd) {
               // Right swipe → toggle star
-              Provider.of<ExpenseProvider>(context, listen: false).toggleStarTransaction(tx.id);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(tx.isStarred ? 'Removed from Starred ⭐' : 'Added to Starred ⭐'),
-                  duration: const Duration(seconds: 1),
-                ),
-              );
+              expenseProvider.toggleStarTransaction(tx.id);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(tx.isStarred ? 'Removed from Starred ⭐' : 'Added to Starred ⭐'),
+                    duration: const Duration(seconds: 1),
+                  ),
+                );
+              }
               return false; // Don't dismiss
             } else {
               // Left swipe → delete
@@ -108,7 +111,7 @@ class TransactionList extends StatelessWidget {
                 ),
               );
               if (confirm == true) {
-                Provider.of<ExpenseProvider>(context, listen: false).deleteTransaction(tx.id);
+                expenseProvider.deleteTransaction(tx.id);
               }
               return false;
             }

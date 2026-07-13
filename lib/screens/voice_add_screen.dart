@@ -19,7 +19,6 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
   late stt.SpeechToText _speech;
   bool _isListening = false;
   String _text = 'Press the mic and say something...';
-  double _confidence = 1.0;
   
   // Parsed data
   double? _parsedAmount;
@@ -118,9 +117,6 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
           if (mounted) {
             setState(() {
               _text = val.recognizedWords;
-              if (val.hasConfidenceRating && val.confidence > 0) {
-                _confidence = val.confidence;
-              }
             });
             // Reset the silence timer every time a new word is recognized
             _startSilenceTimer();

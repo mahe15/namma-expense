@@ -12,7 +12,6 @@ class ExpenseProvider with ChangeNotifier {
   final DBHelper _dbHelper = DBHelper();
 
   DashboardTimeFilter _dashboardFilter = DashboardTimeFilter.month;
-  final String _appGroupId = 'NammaWidgetProvider';
 
   int _startOfWeek = 1;
   int _startOfMonth = 1;

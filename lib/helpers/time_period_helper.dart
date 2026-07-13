@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 class TimeRange {
   final DateTime start;
   final DateTime end;
@@ -31,42 +29,42 @@ class TimePeriodHelper {
   }
 
   static TimeRange getMonthRange(DateTime now, int startOfMonthDay) {
-    // We want the current period based on now.
-    // If now.day < startOfMonthDay, the period started last month.
-    // Ensure day doesn't exceed days in the target month
-    
-    int year = now.year;
-    int month = now.month;
-    
-    // Check if the current date is before the start day of the CURRENT month
-    // E.g., now = March 5, startOfMonth = 10. Start date should be Feb 10.
-    if (now.day < startOfMonthDay) {
-      month -= 1;
-      if (month < 1) {
-        month = 12;
-        year -= 1;
+    // Determine if the period started in the current month or previous month.
+    // The start day for the current month:
+    int curDays = _daysInMonth(now.year, now.month);
+    int curStartDay = startOfMonthDay > curDays ? curDays : startOfMonthDay;
+    final curPeriodStart = DateTime(now.year, now.month, curStartDay);
+
+    DateTime start;
+    DateTime nextPeriodStart;
+
+    if (now.isBefore(curPeriodStart)) {
+      // Period started in the previous month
+      int prevYear = now.year;
+      int prevMonth = now.month - 1;
+      if (prevMonth < 1) {
+        prevMonth = 12;
+        prevYear -= 1;
       }
+      int prevDays = _daysInMonth(prevYear, prevMonth);
+      int prevStartDay = startOfMonthDay > prevDays ? prevDays : startOfMonthDay;
+      start = DateTime(prevYear, prevMonth, prevStartDay);
+      nextPeriodStart = curPeriodStart;
+    } else {
+      // Period started in the current month
+      start = curPeriodStart;
+      int nextYear = now.year;
+      int nextMonth = now.month + 1;
+      if (nextMonth > 12) {
+        nextMonth = 1;
+        nextYear += 1;
+      }
+      int nextDays = _daysInMonth(nextYear, nextMonth);
+      int nextStartDay = startOfMonthDay > nextDays ? nextDays : startOfMonthDay;
+      nextPeriodStart = DateTime(nextYear, nextMonth, nextStartDay);
     }
-    
-    int actualStartDay = startOfMonthDay;
-    int maxDays = _daysInMonth(year, month);
-    if (actualStartDay > maxDays) actualStartDay = maxDays;
-    
-    final start = DateTime(year, month, actualStartDay);
-    
-    // End is the next month's start day - 1 second
-    int endMonth = month + 1;
-    int endYear = year;
-    if (endMonth > 12) {
-      endMonth = 1;
-      endYear += 1;
-    }
-    
-    int actualEndDay = startOfMonthDay;
-    int endMaxDays = _daysInMonth(endYear, endMonth);
-    if (actualEndDay > endMaxDays) actualEndDay = endMaxDays;
-    
-    final end = DateTime(endYear, endMonth, actualEndDay).subtract(const Duration(seconds: 1));
+
+    final end = nextPeriodStart.subtract(const Duration(seconds: 1));
     return TimeRange(start, end);
   }
 
@@ -75,24 +73,12 @@ class TimePeriodHelper {
   // index 0 = Feb 10 - Mar 9 (Current)
   // index 1 = Jan 10 - Feb 9 (Previous)
   static DateTime getHistoricalMonthStart(DateTime now, int monthsAgo, int startOfMonthDay) {
-    int year = now.year;
-    int month = now.month;
-    
-    if (now.day < startOfMonthDay) {
-      month -= 1;
+    DateTime currentPeriodStart = getMonthRange(now, startOfMonthDay).start;
+    DateTime targetStart = currentPeriodStart;
+    for (int i = 0; i < monthsAgo; i++) {
+      targetStart = getMonthRange(targetStart.subtract(const Duration(seconds: 1)), startOfMonthDay).start;
     }
-    month -= monthsAgo;
-    
-    while (month < 1) {
-      month += 12;
-      year -= 1;
-    }
-    
-    int actualStartDay = startOfMonthDay;
-    int maxDays = _daysInMonth(year, month);
-    if (actualStartDay > maxDays) actualStartDay = maxDays;
-    
-    return DateTime(year, month, actualStartDay);
+    return targetStart;
   }
 
   static TimeRange getYearRange(DateTime now, int startOfYearMonth) {
