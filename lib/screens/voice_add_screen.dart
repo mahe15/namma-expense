@@ -80,12 +80,21 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
         _text != 'Press the mic and say something...' && 
         _text != 'Listening...') {
       _parseText(_text);
+    } else {
+      setState(() {
+        _text = "Please try saying again, I didn't hear you.";
+        _parsedAmount = null;
+        _parsedNote = null;
+        _parsedCategory = null;
+        _matchedCategoryName = null;
+        _matchScore = 0.0;
+      });
     }
   }
 
   void _startSilenceTimer() {
     _silenceTimer?.cancel();
-    _silenceTimer = Timer(const Duration(seconds: 2), () {
+    _silenceTimer = Timer(const Duration(seconds: 5), () {
       _stopListening();
     });
   }
@@ -123,18 +132,146 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
           }
         },
         listenFor: const Duration(seconds: 30),
+        pauseFor: const Duration(seconds: 5),
+        listenMode: stt.ListenMode.dictation,
       );
     } else {
       _stopListening();
     }
   }
 
+  String _convertSpokenNumbers(String input) {
+    final Map<String, int> numberWords = {
+      'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+      'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
+      'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14, 'fifteen': 15,
+      'sixteen': 16, 'seventeen': 17, 'eighteen': 18, 'nineteen': 19,
+      'twenty': 20, 'thirty': 30, 'forty': 40, 'fifty': 50,
+      'sixty': 60, 'seventy': 70, 'eighty': 80, 'ninety': 90
+    };
+
+    final Map<String, int> multipliers = {
+      'hundred': 100,
+      'thousand': 1000,
+      'lakh': 100000,
+    };
+
+    List<String> words = input.toLowerCase().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    List<String> resultWords = [];
+
+    int i = 0;
+    while (i < words.length) {
+      String word = words[i];
+      String cleanWord = word.replaceAll(RegExp(r'[.,!?]'), '');
+
+      if (numberWords.containsKey(cleanWord) || multipliers.containsKey(cleanWord) || RegExp(r'^\d+$').hasMatch(cleanWord)) {
+        int currentVal = 0;
+        int accumulator = 0;
+        bool foundNumber = false;
+
+        while (i < words.length) {
+          String w = words[i].replaceAll(RegExp(r'[.,!?]'), '');
+          if (numberWords.containsKey(w)) {
+            currentVal += numberWords[w]!;
+            foundNumber = true;
+            i++;
+          } else if (multipliers.containsKey(w)) {
+            int mult = multipliers[w]!;
+            if (currentVal == 0) currentVal = 1;
+            accumulator += currentVal * mult;
+            currentVal = 0;
+            foundNumber = true;
+            i++;
+          } else if (RegExp(r'^\d+$').hasMatch(w)) {
+            currentVal += int.parse(w);
+            foundNumber = true;
+            i++;
+          } else if (w == 'and' && i + 1 < words.length) {
+            String nextW = words[i + 1].replaceAll(RegExp(r'[.,!?]'), '');
+            if (numberWords.containsKey(nextW) || RegExp(r'^\d+$').hasMatch(nextW)) {
+              i++;
+            } else {
+              break;
+            }
+          } else {
+            break;
+          }
+        }
+
+        if (foundNumber) {
+          int total = accumulator + currentVal;
+          resultWords.add(total.toString());
+        }
+      } else {
+        resultWords.add(word);
+        i++;
+      }
+    }
+
+    return resultWords.join(' ');
+  }
+
+  double _extractAmount(String input) {
+    final amountRegex = RegExp(r'(\d+(\.\d+)?)');
+    final matches = amountRegex.allMatches(input).toList();
+    if (matches.isEmpty) return 0.0;
+    if (matches.length == 1) {
+      return double.tryParse(matches[0].group(0)!) ?? 0.0;
+    }
+
+    double bestAmount = 0.0;
+    double maxScore = -1.0;
+
+    final currencyKeywords = {'rupees', 'rupee', 'rs', '₹', 'bucks'};
+    final pricePrepositions = {'for', 'at', 'cost', 'costs', 'of'};
+
+    for (var match in matches) {
+      final numStr = match.group(0)!;
+      final numVal = double.tryParse(numStr) ?? 0.0;
+      if (numVal <= 0) continue;
+
+      double score = 0.0;
+
+      final convertedWords = input.toLowerCase().split(RegExp(r'\s+'));
+      int idx = convertedWords.indexOf(numStr);
+      if (idx != -1) {
+        if (idx > 0 && currencyKeywords.contains(convertedWords[idx - 1])) {
+          score += 10.0;
+        }
+        if (idx < convertedWords.length - 1 && currencyKeywords.contains(convertedWords[idx + 1])) {
+          score += 10.0;
+        }
+        if (idx > 0 && pricePrepositions.contains(convertedWords[idx - 1])) {
+          score += 5.0;
+        }
+        if (idx > 1 && pricePrepositions.contains(convertedWords[idx - 2])) {
+          score += 3.0;
+        }
+      }
+
+      if (numVal > 10) {
+        score += 2.0;
+      }
+      if (numVal > 100) {
+        score += 2.0;
+      }
+
+      if (score > maxScore) {
+        maxScore = score;
+        bestAmount = numVal;
+      }
+    }
+
+    return bestAmount;
+  }
+
   void _parseText(String input) {
     final lowerInput = input.toLowerCase().trim();
+    final convertedInput = _convertSpokenNumbers(lowerInput);
     
     // ── 1. EXTRACT AMOUNT ──
     // Strip currency words first, then find numbers
-    String cleaned = lowerInput
+    String cleaned = convertedInput
         .replaceAll('rupees', '')
         .replaceAll('rupee', '')
         .replaceAll('bucks', '')
@@ -142,11 +279,17 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
         .replaceAll('₹', '')
         .trim();
     
-    double amount = 0.0;
-    final amountRegex = RegExp(r'(\d+(\.\d+)?)');
-    final match = amountRegex.firstMatch(cleaned);
-    if (match != null) {
-      amount = double.tryParse(match.group(0)!) ?? 0.0;
+    double amount = _extractAmount(convertedInput);
+    if (amount <= 0.0) {
+      setState(() {
+        _text = "Please try saying again, I didn't hear you.";
+        _parsedAmount = null;
+        _parsedNote = null;
+        _parsedCategory = null;
+        _matchedCategoryName = null;
+        _matchScore = 0.0;
+      });
+      return;
     }
 
     // ── 2. EXTRACT CONTEXT WORDS ──
@@ -201,19 +344,24 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
     // ── 3. FUZZY CATEGORY MATCHING ──
     final categories = Provider.of<UserProvider>(context, listen: false).categories;
     
-    // Common spoken word → category keyword aliases
+    // Common spoken word → category keyword aliases (expanded for all default categories)
     final Map<String, List<String>> aliases = {
-      'food': ['food', 'lunch', 'dinner', 'breakfast', 'meal', 'eat', 'eating', 'snack', 'snacks', 'biryani', 'rice', 'dosa', 'idli', 'samosa', 'pizza', 'burger', 'chicken', 'roti', 'chapati', 'thali', 'mess'],
-      'grocery': ['grocery', 'groceries', 'vegetables', 'veggies', 'fruits', 'tomato', 'onion', 'potato', 'milk', 'curd', 'egg', 'eggs', 'bread', 'atta', 'dal', 'oil', 'sugar', 'salt', 'kirana'],
-      'transport': ['transport', 'auto', 'cab', 'uber', 'ola', 'bus', 'train', 'metro', 'rickshaw', 'ride', 'commute', 'travel', 'petrol', 'diesel'],
-      'fuel': ['fuel', 'petrol', 'diesel', 'gas', 'cng'],
-      'recharge': ['recharge', 'mobile', 'phone', 'airtel', 'jio', 'vi', 'bsnl', 'wifi', 'internet', 'data'],
-      'entertainment': ['fun', 'entertainment', 'movie', 'movies', 'cinema', 'game', 'games', 'gaming', 'netflix', 'spotify', 'youtube', 'party', 'outing'],
-      'shopping': ['shopping', 'clothes', 'shoes', 'shirt', 'pants', 'dress', 'fashion', 'amazon', 'flipkart', 'myntra', 'online'],
-      'bills': ['bill', 'bills', 'electricity', 'electric', 'water', 'rent', 'wifi', 'broadband', 'gas', 'cylinder', 'emi'],
-      'medical': ['medical', 'medicine', 'doctor', 'hospital', 'pharmacy', 'tablet', 'health', 'gym', 'clinic'],
+      'food': ['food', 'lunch', 'dinner', 'breakfast', 'meal', 'eat', 'eating', 'snack', 'snacks', 'biryani', 'rice', 'dosa', 'idli', 'samosa', 'pizza', 'burger', 'chicken', 'roti', 'chapati', 'thali', 'mess', 'dining', 'restaurant', 'cafe', 'tea', 'coffee', 'starbucks', 'beverage'],
+      'grocery': ['grocery', 'groceries', 'vegetables', 'veggies', 'fruits', 'tomato', 'onion', 'potato', 'milk', 'curd', 'egg', 'eggs', 'bread', 'atta', 'dal', 'oil', 'sugar', 'salt', 'kirana', 'butter', 'cheese', 'supermarket', 'mart'],
+      'transport': ['transport', 'auto', 'cab', 'uber', 'ola', 'bus', 'train', 'metro', 'rickshaw', 'ride', 'commute', 'travel', 'petrol', 'diesel', 'taxi', 'fare', 'ticket'],
+      'travel': ['travel', 'flight', 'hotel', 'trip', 'vacation', 'journey', 'tour', 'train', 'bus', 'booking'],
+      'fuel': ['fuel', 'petrol', 'diesel', 'gas', 'cng', 'gasoline'],
+      'recharge': ['recharge', 'mobile', 'phone', 'airtel', 'jio', 'vi', 'bsnl', 'wifi', 'internet', 'data', 'topup'],
+      'entertainment': ['fun', 'entertainment', 'movie', 'movies', 'cinema', 'game', 'games', 'gaming', 'netflix', 'spotify', 'youtube', 'party', 'outing', 'pub', 'club', 'concert', 'show', 'theater'],
+      'shopping': ['shopping', 'clothes', 'shoes', 'shirt', 'pants', 'dress', 'fashion', 'amazon', 'flipkart', 'myntra', 'online', 'store', 'mall', 'jacket', 'jeans'],
+      'bills': ['bill', 'bills', 'electricity', 'electric', 'water', 'rent', 'wifi', 'broadband', 'gas', 'cylinder', 'emi', 'subscription'],
+      'medical': ['medical', 'medicine', 'doctor', 'hospital', 'pharmacy', 'tablet', 'health', 'gym', 'clinic', 'dentist', 'pills', 'chemist'],
       'books': ['books', 'book', 'stationery', 'pen', 'notebook', 'study', 'course', 'subscription'],
-      'education': ['school', 'education', 'tuition', 'fees', 'college', 'class', 'coaching'],
+      'education': ['school', 'education', 'tuition', 'fees', 'college', 'class', 'coaching', 'university', 'exam'],
+      'investment': ['invest', 'investment', 'stock', 'mutual fund', 'crypto', 'fd', 'gold', 'share', 'saving'],
+      'utilities': ['utility', 'utilities', 'gas', 'water', 'power', 'internet', 'wifi', 'recharge', 'trash', 'electricity'],
+      'helper': ['maid', 'help', 'cook', 'cleaner', 'driver', 'servant', 'salary', 'helper'],
+      'maintenance': ['repair', 'maintenance', 'plumber', 'electrician', 'mechanic', 'service', 'car service', 'bike service', 'fixing'],
     };
     
     String bestCatId = 'other';
@@ -257,7 +405,7 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
       // Check if any alias words appear in the FULL input (fallback)
       if (aliases.containsKey(cat.id)) {
         for (var alias in aliases[cat.id]!) {
-          if (lowerInput.contains(alias) && alias.length >= 3) {
+          if (convertedInput.contains(alias) && alias.length >= 3) {
             double containsScore = 0.7; // base score for keyword presence
             if (containsScore > score) score = containsScore;
           }
