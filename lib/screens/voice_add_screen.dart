@@ -19,7 +19,7 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
   late stt.SpeechToText _speech;
   bool _isListening = false;
   String _text = 'Press the mic and say something...';
-  
+
   // Parsed data
   double? _parsedAmount;
   String? _parsedNote;
@@ -36,7 +36,7 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
     _speech = stt.SpeechToText();
     _initSpeech();
   }
-  
+
   @override
   void dispose() {
     _silenceTimer?.cancel();
@@ -49,7 +49,7 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
       _speechEnabled = await _speech.initialize(
         onStatus: (val) {
           if (val == 'done' || val == 'notListening') {
-             _stopListening();
+            _stopListening();
           }
         },
         onError: (val) {
@@ -59,7 +59,7 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
     } catch (e) {
       _speechEnabled = false;
     }
-    
+
     if (mounted) {
       setState(() {});
       // Automatically start listening once initialized
@@ -72,12 +72,12 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
   void _stopListening() {
     _silenceTimer?.cancel();
     if (!mounted || !_isListening) return;
-    
+
     setState(() => _isListening = false);
     _speech.stop();
-    
-    if (_text.isNotEmpty && 
-        _text != 'Press the mic and say something...' && 
+
+    if (_text.isNotEmpty &&
+        _text != 'Press the mic and say something...' &&
         _text != 'Listening...') {
       _parseText(_text);
     } else {
@@ -106,7 +106,7 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
         _initSpeech();
         if (!_speechEnabled) return;
       }
-      
+
       // Clear previous parsed data before starting new recording
       setState(() {
         _isListening = true;
@@ -117,10 +117,10 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
         _matchedCategoryName = null;
         _matchScore = 0.0;
       });
-      
+
       // Start the fail-safe timer immediately in case they don't say anything
       _startSilenceTimer();
-      
+
       _speech.listen(
         onResult: (val) {
           if (mounted) {
@@ -142,12 +142,34 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
 
   String _convertSpokenNumbers(String input) {
     final Map<String, int> numberWords = {
-      'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
-      'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
-      'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14, 'fifteen': 15,
-      'sixteen': 16, 'seventeen': 17, 'eighteen': 18, 'nineteen': 19,
-      'twenty': 20, 'thirty': 30, 'forty': 40, 'fifty': 50,
-      'sixty': 60, 'seventy': 70, 'eighty': 80, 'ninety': 90
+      'zero': 0,
+      'one': 1,
+      'two': 2,
+      'three': 3,
+      'four': 4,
+      'five': 5,
+      'six': 6,
+      'seven': 7,
+      'eight': 8,
+      'nine': 9,
+      'ten': 10,
+      'eleven': 11,
+      'twelve': 12,
+      'thirteen': 13,
+      'fourteen': 14,
+      'fifteen': 15,
+      'sixteen': 16,
+      'seventeen': 17,
+      'eighteen': 18,
+      'nineteen': 19,
+      'twenty': 20,
+      'thirty': 30,
+      'forty': 40,
+      'fifty': 50,
+      'sixty': 60,
+      'seventy': 70,
+      'eighty': 80,
+      'ninety': 90,
     };
 
     final Map<String, int> multipliers = {
@@ -156,7 +178,11 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
       'lakh': 100000,
     };
 
-    List<String> words = input.toLowerCase().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    List<String> words = input
+        .toLowerCase()
+        .split(RegExp(r'\s+'))
+        .where((w) => w.isNotEmpty)
+        .toList();
     List<String> resultWords = [];
 
     int i = 0;
@@ -164,7 +190,9 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
       String word = words[i];
       String cleanWord = word.replaceAll(RegExp(r'[.,!?]'), '');
 
-      if (numberWords.containsKey(cleanWord) || multipliers.containsKey(cleanWord) || RegExp(r'^\d+$').hasMatch(cleanWord)) {
+      if (numberWords.containsKey(cleanWord) ||
+          multipliers.containsKey(cleanWord) ||
+          RegExp(r'^\d+$').hasMatch(cleanWord)) {
         int currentVal = 0;
         int accumulator = 0;
         bool foundNumber = false;
@@ -188,7 +216,8 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
             i++;
           } else if (w == 'and' && i + 1 < words.length) {
             String nextW = words[i + 1].replaceAll(RegExp(r'[.,!?]'), '');
-            if (numberWords.containsKey(nextW) || RegExp(r'^\d+$').hasMatch(nextW)) {
+            if (numberWords.containsKey(nextW) ||
+                RegExp(r'^\d+$').hasMatch(nextW)) {
               i++;
             } else {
               break;
@@ -238,7 +267,8 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
         if (idx > 0 && currencyKeywords.contains(convertedWords[idx - 1])) {
           score += 10.0;
         }
-        if (idx < convertedWords.length - 1 && currencyKeywords.contains(convertedWords[idx + 1])) {
+        if (idx < convertedWords.length - 1 &&
+            currencyKeywords.contains(convertedWords[idx + 1])) {
           score += 10.0;
         }
         if (idx > 0 && pricePrepositions.contains(convertedWords[idx - 1])) {
@@ -268,7 +298,7 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
   void _parseText(String input) {
     final lowerInput = input.toLowerCase().trim();
     final convertedInput = _convertSpokenNumbers(lowerInput);
-    
+
     // ── 1. EXTRACT AMOUNT ──
     // Strip currency words first, then find numbers
     String cleaned = convertedInput
@@ -278,7 +308,7 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
         .replaceAll('rs', '')
         .replaceAll('₹', '')
         .trim();
-    
+
     double amount = _extractAmount(convertedInput);
     if (amount <= 0.0) {
       setState(() {
@@ -294,37 +324,73 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
 
     // ── 2. EXTRACT CONTEXT WORDS ──
     // Remove noise words + the matched amount to get the "meaning" part
-    final noiseWords = {'spent', 'spend', 'paid', 'pay', 'gave', 'give', 'bought', 'buy', 'got', 'get', 'rupees', 'rupee', 'rs', 'bucks', 'about', 'around', 'like', 'some', 'the', 'a', 'an', 'i', 'my', 'me', 'and', 'with'};
+    final noiseWords = {
+      'spent',
+      'spend',
+      'paid',
+      'pay',
+      'gave',
+      'give',
+      'bought',
+      'buy',
+      'got',
+      'get',
+      'rupees',
+      'rupee',
+      'rs',
+      'bucks',
+      'about',
+      'around',
+      'like',
+      'some',
+      'the',
+      'a',
+      'an',
+      'i',
+      'my',
+      'me',
+      'and',
+      'with',
+    };
     final splitWords = {'on', 'for', 'at', 'in', 'to', 'from'};
-    
+
     // Get all words, remove amount digits and noise
-    List<String> words = cleaned.split(RegExp(r'\s+'))
+    List<String> words = cleaned
+        .split(RegExp(r'\s+'))
         .where((w) => w.isNotEmpty)
-        .where((w) => !RegExp(r'^\d+\.?\d*$').hasMatch(w))   // remove pure numbers
-        .where((w) => !noiseWords.contains(w.toLowerCase()))   // remove noise words
+        .where(
+          (w) => !RegExp(r'^\d+\.?\d*$').hasMatch(w),
+        ) // remove pure numbers
+        .where(
+          (w) => !noiseWords.contains(w.toLowerCase()),
+        ) // remove noise words
         .toList();
-    
+
     // Split into category hint and note using prepositions
     // e.g. "groceries for tomato" → category hint: "groceries", note: "tomato"
     // e.g. "on food for samosa" → category hint: "food", note: "samosa"
     String categoryHint = '';
     String noteHint = '';
-    
+
     int splitIdx = -1;
     for (int i = 0; i < words.length; i++) {
       if (splitWords.contains(words[i].toLowerCase())) {
         splitIdx = i;
       }
     }
-    
+
     if (splitIdx >= 0 && splitIdx < words.length - 1) {
       // Words before the LAST split word = category context
       // Words after = note context
       // But we need to handle "spent 300 on groceries for tomato"
       // Find first split word for category, last for note
-      int firstSplit = words.indexWhere((w) => splitWords.contains(w.toLowerCase()));
-      int lastSplit = words.lastIndexWhere((w) => splitWords.contains(w.toLowerCase()));
-      
+      int firstSplit = words.indexWhere(
+        (w) => splitWords.contains(w.toLowerCase()),
+      );
+      int lastSplit = words.lastIndexWhere(
+        (w) => splitWords.contains(w.toLowerCase()),
+      );
+
       if (firstSplit == lastSplit) {
         // Only one preposition: everything after it is the subject
         List<String> afterSplit = words.sublist(firstSplit + 1);
@@ -340,54 +406,274 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
       categoryHint = words.join(' ');
       noteHint = words.join(' ');
     }
-    
+
     // ── 3. FUZZY CATEGORY MATCHING ──
-    final categories = Provider.of<UserProvider>(context, listen: false).categories;
-    
+    final categories = Provider.of<UserProvider>(
+      context,
+      listen: false,
+    ).categories;
+
     // Common spoken word → category keyword aliases (expanded for all default categories)
     final Map<String, List<String>> aliases = {
-      'food': ['food', 'lunch', 'dinner', 'breakfast', 'meal', 'eat', 'eating', 'snack', 'snacks', 'biryani', 'rice', 'dosa', 'idli', 'samosa', 'pizza', 'burger', 'chicken', 'roti', 'chapati', 'thali', 'mess', 'dining', 'restaurant', 'cafe', 'tea', 'coffee', 'starbucks', 'beverage'],
-      'grocery': ['grocery', 'groceries', 'vegetables', 'veggies', 'fruits', 'tomato', 'onion', 'potato', 'milk', 'curd', 'egg', 'eggs', 'bread', 'atta', 'dal', 'oil', 'sugar', 'salt', 'kirana', 'butter', 'cheese', 'supermarket', 'mart'],
-      'transport': ['transport', 'auto', 'cab', 'uber', 'ola', 'bus', 'train', 'metro', 'rickshaw', 'ride', 'commute', 'travel', 'petrol', 'diesel', 'taxi', 'fare', 'ticket'],
-      'travel': ['travel', 'flight', 'hotel', 'trip', 'vacation', 'journey', 'tour', 'train', 'bus', 'booking'],
+      'food': [
+        'food',
+        'lunch',
+        'dinner',
+        'breakfast',
+        'meal',
+        'eat',
+        'eating',
+        'snack',
+        'snacks',
+        'biryani',
+        'rice',
+        'dosa',
+        'idli',
+        'samosa',
+        'pizza',
+        'burger',
+        'chicken',
+        'roti',
+        'chapati',
+        'thali',
+        'mess',
+        'dining',
+        'restaurant',
+        'cafe',
+        'tea',
+        'coffee',
+        'starbucks',
+        'beverage',
+      ],
+      'grocery': [
+        'grocery',
+        'groceries',
+        'vegetables',
+        'veggies',
+        'fruits',
+        'tomato',
+        'onion',
+        'potato',
+        'milk',
+        'curd',
+        'egg',
+        'eggs',
+        'bread',
+        'atta',
+        'dal',
+        'oil',
+        'sugar',
+        'salt',
+        'kirana',
+        'butter',
+        'cheese',
+        'supermarket',
+        'mart',
+      ],
+      'transport': [
+        'transport',
+        'auto',
+        'cab',
+        'uber',
+        'ola',
+        'bus',
+        'train',
+        'metro',
+        'rickshaw',
+        'ride',
+        'commute',
+        'travel',
+        'petrol',
+        'diesel',
+        'taxi',
+        'fare',
+        'ticket',
+      ],
+      'travel': [
+        'travel',
+        'flight',
+        'hotel',
+        'trip',
+        'vacation',
+        'journey',
+        'tour',
+        'train',
+        'bus',
+        'booking',
+      ],
       'fuel': ['fuel', 'petrol', 'diesel', 'gas', 'cng', 'gasoline'],
-      'recharge': ['recharge', 'mobile', 'phone', 'airtel', 'jio', 'vi', 'bsnl', 'wifi', 'internet', 'data', 'topup'],
-      'entertainment': ['fun', 'entertainment', 'movie', 'movies', 'cinema', 'game', 'games', 'gaming', 'netflix', 'spotify', 'youtube', 'party', 'outing', 'pub', 'club', 'concert', 'show', 'theater'],
-      'shopping': ['shopping', 'clothes', 'shoes', 'shirt', 'pants', 'dress', 'fashion', 'amazon', 'flipkart', 'myntra', 'online', 'store', 'mall', 'jacket', 'jeans'],
-      'bills': ['bill', 'bills', 'electricity', 'electric', 'water', 'rent', 'wifi', 'broadband', 'gas', 'cylinder', 'emi', 'subscription'],
-      'medical': ['medical', 'medicine', 'doctor', 'hospital', 'pharmacy', 'tablet', 'health', 'gym', 'clinic', 'dentist', 'pills', 'chemist'],
-      'books': ['books', 'book', 'stationery', 'pen', 'notebook', 'study', 'course', 'subscription'],
-      'education': ['school', 'education', 'tuition', 'fees', 'college', 'class', 'coaching', 'university', 'exam'],
-      'investment': ['invest', 'investment', 'stock', 'mutual fund', 'crypto', 'fd', 'gold', 'share', 'saving'],
-      'utilities': ['utility', 'utilities', 'gas', 'water', 'power', 'internet', 'wifi', 'recharge', 'trash', 'electricity'],
-      'helper': ['maid', 'help', 'cook', 'cleaner', 'driver', 'servant', 'salary', 'helper'],
-      'maintenance': ['repair', 'maintenance', 'plumber', 'electrician', 'mechanic', 'service', 'car service', 'bike service', 'fixing'],
+      'recharge': [
+        'recharge',
+        'mobile',
+        'phone',
+        'airtel',
+        'jio',
+        'vi',
+        'bsnl',
+        'wifi',
+        'internet',
+        'data',
+        'topup',
+      ],
+      'entertainment': [
+        'fun',
+        'entertainment',
+        'movie',
+        'movies',
+        'cinema',
+        'game',
+        'games',
+        'gaming',
+        'netflix',
+        'spotify',
+        'youtube',
+        'party',
+        'outing',
+        'pub',
+        'club',
+        'concert',
+        'show',
+        'theater',
+      ],
+      'shopping': [
+        'shopping',
+        'clothes',
+        'shoes',
+        'shirt',
+        'pants',
+        'dress',
+        'fashion',
+        'amazon',
+        'flipkart',
+        'myntra',
+        'online',
+        'store',
+        'mall',
+        'jacket',
+        'jeans',
+      ],
+      'bills': [
+        'bill',
+        'bills',
+        'electricity',
+        'electric',
+        'water',
+        'rent',
+        'wifi',
+        'broadband',
+        'gas',
+        'cylinder',
+        'emi',
+        'subscription',
+      ],
+      'medical': [
+        'medical',
+        'medicine',
+        'doctor',
+        'hospital',
+        'pharmacy',
+        'tablet',
+        'health',
+        'gym',
+        'clinic',
+        'dentist',
+        'pills',
+        'chemist',
+      ],
+      'books': [
+        'books',
+        'book',
+        'stationery',
+        'pen',
+        'notebook',
+        'study',
+        'course',
+        'subscription',
+      ],
+      'education': [
+        'school',
+        'education',
+        'tuition',
+        'fees',
+        'college',
+        'class',
+        'coaching',
+        'university',
+        'exam',
+      ],
+      'investment': [
+        'invest',
+        'investment',
+        'stock',
+        'mutual fund',
+        'crypto',
+        'fd',
+        'gold',
+        'share',
+        'saving',
+      ],
+      'utilities': [
+        'utility',
+        'utilities',
+        'gas',
+        'water',
+        'power',
+        'internet',
+        'wifi',
+        'recharge',
+        'trash',
+        'electricity',
+      ],
+      'helper': [
+        'maid',
+        'help',
+        'cook',
+        'cleaner',
+        'driver',
+        'servant',
+        'salary',
+        'helper',
+      ],
+      'maintenance': [
+        'repair',
+        'maintenance',
+        'plumber',
+        'electrician',
+        'mechanic',
+        'service',
+        'car service',
+        'bike service',
+        'fixing',
+      ],
     };
-    
+
     String bestCatId = 'other';
     double bestScore = 0.0;
     String bestCatName = 'Other';
-    
+
     final hintWords = categoryHint.toLowerCase().split(RegExp(r'\s+'));
-    
+
     for (var cat in categories) {
       double score = 0.0;
-      
+
       // Direct name match (highest priority)
-      double nameScore = _similarity(categoryHint.toLowerCase(), cat.name.toLowerCase());
+      double nameScore = _similarity(
+        categoryHint.toLowerCase(),
+        cat.name.toLowerCase(),
+      );
       if (nameScore > score) score = nameScore;
-      
+
       // Check each hint word against category name
       for (var word in hintWords) {
         if (word.isEmpty) continue;
         double wordScore = _similarity(word, cat.name.toLowerCase());
         if (wordScore > score) score = wordScore;
-        
+
         // Also check against category ID
         double idScore = _similarity(word, cat.id.toLowerCase());
         if (idScore > score) score = idScore;
       }
-      
+
       // Check against aliases
       if (aliases.containsKey(cat.id)) {
         for (var alias in aliases[cat.id]!) {
@@ -397,11 +683,14 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
             if (aliasScore > score) score = aliasScore;
           }
           // Also check full hint
-          double fullAliasScore = _similarity(categoryHint.toLowerCase(), alias);
+          double fullAliasScore = _similarity(
+            categoryHint.toLowerCase(),
+            alias,
+          );
           if (fullAliasScore > score) score = fullAliasScore;
         }
       }
-      
+
       // Check if any alias words appear in the FULL input (fallback)
       if (aliases.containsKey(cat.id)) {
         for (var alias in aliases[cat.id]!) {
@@ -411,26 +700,28 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
           }
         }
       }
-      
+
       if (score > bestScore) {
         bestScore = score;
         bestCatId = cat.id;
         bestCatName = cat.name;
       }
     }
-    
+
     // Only accept match if score >= 0.5 (50%), otherwise fall back to 'other'
     if (bestScore < 0.5) {
       bestCatId = 'other';
       bestCatName = 'Other';
       bestScore = 0;
     }
-    
+
     // ── 4. SMART NOTE ──
     // Use the note hint if we extracted one, otherwise capitalize the category hint
-    String finalNote = noteHint.isNotEmpty ? _capitalize(noteHint) : _capitalize(categoryHint);
+    String finalNote = noteHint.isNotEmpty
+        ? _capitalize(noteHint)
+        : _capitalize(categoryHint);
     if (finalNote.isEmpty) finalNote = 'Voice Entry';
-    
+
     setState(() {
       _parsedAmount = amount;
       _parsedNote = finalNote;
@@ -444,19 +735,23 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
   double _similarity(String a, String b) {
     if (a.isEmpty || b.isEmpty) return 0.0;
     if (a == b) return 1.0;
-    
+
     // Check if one contains the other
     if (a.contains(b) || b.contains(a)) {
-      return 0.85 + (0.15 * (a.length < b.length ? a.length / b.length : b.length / a.length));
+      return 0.85 +
+          (0.15 *
+              (a.length < b.length
+                  ? a.length / b.length
+                  : b.length / a.length));
     }
-    
+
     // Check if one starts with the other (e.g., "grocer" matches "grocery")
     if (a.startsWith(b) || b.startsWith(a)) {
       int shorter = a.length < b.length ? a.length : b.length;
       int longer = a.length > b.length ? a.length : b.length;
       return 0.7 + (0.3 * shorter / longer);
     }
-    
+
     // Levenshtein distance
     final int n = a.length, m = b.length;
     List<List<int>> dp = List.generate(n + 1, (_) => List.filled(m + 1, 0));
@@ -465,7 +760,11 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
     for (int i = 1; i <= n; i++) {
       for (int j = 1; j <= m; j++) {
         int cost = a[i - 1] == b[j - 1] ? 0 : 1;
-        dp[i][j] = [dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost].reduce((a, b) => a < b ? a : b);
+        dp[i][j] = [
+          dp[i - 1][j] + 1,
+          dp[i][j - 1] + 1,
+          dp[i - 1][j - 1] + cost,
+        ].reduce((a, b) => a < b ? a : b);
       }
     }
     int maxLen = n > m ? n : m;
@@ -490,8 +789,11 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
       wallet: WalletType.upi,
     );
 
-    await Provider.of<ExpenseProvider>(context, listen: false).addTransaction(newTx);
-    
+    await Provider.of<ExpenseProvider>(
+      context,
+      listen: false,
+    ).addTransaction(newTx);
+
     if (mounted) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -507,7 +809,7 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
     final micButtonSize = screenWidth * 0.13;
     final categories = Provider.of<UserProvider>(context).categories;
     final currency = Provider.of<UserProvider>(context).currency;
-    
+
     // Find matched category object for display
     Category? matchedCat;
     if (_parsedCategory != null) {
@@ -515,7 +817,7 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
         matchedCat = categories.firstWhere((c) => c.id == _parsedCategory);
       } catch (_) {}
     }
-    
+
     return Scaffold(
       appBar: AppBar(title: const Text('Voice Add 🎙️')),
       body: LayoutBuilder(
@@ -523,7 +825,9 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
           return SingleChildScrollView(
             padding: EdgeInsets.all(screenWidth * 0.06),
             child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight - screenWidth * 0.12),
+              constraints: BoxConstraints(
+                minHeight: constraints.maxHeight - screenWidth * 0.12,
+              ),
               child: IntrinsicHeight(
                 child: Column(
                   children: [
@@ -532,11 +836,13 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
                       'Say something like:\n"Spent 300 on groceries for tomato"',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.grey,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white70
+                            : Colors.grey,
                       ),
                     ),
                     SizedBox(height: screenHeight * 0.05),
-                    
+
                     // Microphone Button
                     GestureDetector(
                       onTapUp: (_) => _listen(),
@@ -546,7 +852,9 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
                         duration: const Duration(milliseconds: 2000),
                         repeat: true,
                         child: CircleAvatar(
-                          backgroundColor: _isListening ? Colors.red : Theme.of(context).primaryColor,
+                          backgroundColor: _isListening
+                              ? Colors.red
+                              : Theme.of(context).primaryColor,
                           radius: micButtonSize,
                           child: Icon(
                             _isListening ? Icons.mic : Icons.mic_none,
@@ -556,155 +864,215 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
                         ),
                       ),
                     ),
-                    
+
                     SizedBox(height: screenHeight * 0.04),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: screenWidth * 0.05,
+                      ),
                       child: Text(
                         _text,
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: screenWidth * 0.055, 
+                          fontSize: screenWidth * 0.055,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
-                    
+
                     if (_parsedAmount != null && _parsedAmount! > 0) ...[
-                        SizedBox(height: screenHeight * 0.03),
-                        const Divider(),
-                        SizedBox(height: screenHeight * 0.01),
-                        Text(
-                          'Parsed Expense', 
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                      SizedBox(height: screenHeight * 0.03),
+                      const Divider(),
+                      SizedBox(height: screenHeight * 0.01),
+                      Text(
+                        'Parsed Expense',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: screenHeight * 0.015),
+
+                      // ── Amount Card ──
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(screenWidth * 0.04),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primaryContainer.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        SizedBox(height: screenHeight * 0.015),
-                        
-                        // ── Amount Card ──
-                        Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.all(screenWidth * 0.04),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.currency_rupee, size: screenWidth * 0.07, color: Theme.of(context).colorScheme.primary),
-                              SizedBox(width: screenWidth * 0.02),
-                              Text(
-                                '$currency${_parsedAmount!.toStringAsFixed(_parsedAmount! == _parsedAmount!.toInt().toDouble() ? 0 : 2)}',
-                                style: TextStyle(fontSize: screenWidth * 0.08, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.currency_rupee,
+                              size: screenWidth * 0.07,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            SizedBox(width: screenWidth * 0.02),
+                            Text(
+                              '$currency${_parsedAmount!.toStringAsFixed(_parsedAmount! == _parsedAmount!.toInt().toDouble() ? 0 : 2)}',
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.08,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
-                            ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: screenHeight * 0.012),
+
+                      // ── Category Card ──
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(screenWidth * 0.04),
+                        decoration: BoxDecoration(
+                          color: (matchedCat?.color ?? Colors.grey).withOpacity(
+                            0.1,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: (matchedCat?.color ?? Colors.grey)
+                                .withOpacity(0.3),
                           ),
                         ),
-                        SizedBox(height: screenHeight * 0.012),
-                        
-                        // ── Category Card ──
-                        Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.all(screenWidth * 0.04),
-                          decoration: BoxDecoration(
-                            color: (matchedCat?.color ?? Colors.grey).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: (matchedCat?.color ?? Colors.grey).withOpacity(0.3)),
-                          ),
-                          child: Row(
-                            children: [
-                              if (matchedCat != null) ...[
-                                Container(
-                                  width: 40, height: 40,
-                                  decoration: BoxDecoration(
-                                    color: matchedCat.color.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Center(child: FaIcon(matchedCat.icon, color: matchedCat.color, size: 18)),
+                        child: Row(
+                          children: [
+                            if (matchedCat != null) ...[
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: matchedCat.color.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
-                                SizedBox(width: screenWidth * 0.03),
-                              ],
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      _matchedCategoryName ?? 'Other',
-                                      style: TextStyle(fontSize: screenWidth * 0.04, fontWeight: FontWeight.w600),
+                                child: Center(
+                                  child: FaIcon(
+                                    matchedCat.icon,
+                                    color: matchedCat.color,
+                                    size: 18,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: screenWidth * 0.03),
+                            ],
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _matchedCategoryName ?? 'Other',
+                                    style: TextStyle(
+                                      fontSize: screenWidth * 0.04,
+                                      fontWeight: FontWeight.w600,
                                     ),
-                                    if (_matchScore > 0)
-                                      Text(
-                                        'Match: ${(_matchScore * 100).toStringAsFixed(0)}%',
+                                  ),
+                                  if (_matchScore > 0)
+                                    Text(
+                                      'Match: ${(_matchScore * 100).toStringAsFixed(0)}%',
+                                      style: TextStyle(
+                                        fontSize: screenWidth * 0.03,
+                                        color: _matchScore >= 0.8
+                                            ? Colors.green
+                                            : (_matchScore >= 0.6
+                                                  ? Colors.orange
+                                                  : Colors.red),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            // Dropdown to override category
+                            DropdownButton<String>(
+                              value: _parsedCategory,
+                              underline: const SizedBox(),
+                              icon: Icon(
+                                Icons.swap_horiz,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              items: categories
+                                  .map(
+                                    (c) => DropdownMenuItem(
+                                      value: c.id,
+                                      child: Text(
+                                        c.name,
                                         style: TextStyle(
-                                          fontSize: screenWidth * 0.03,
-                                          color: _matchScore >= 0.8 ? Colors.green : (_matchScore >= 0.6 ? Colors.orange : Colors.red),
-                                          fontWeight: FontWeight.w500,
+                                          fontSize: screenWidth * 0.035,
                                         ),
                                       ),
-                                  ],
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  final cat = categories.firstWhere(
+                                    (c) => c.id == val,
+                                  );
+                                  setState(() {
+                                    _parsedCategory = val;
+                                    _matchedCategoryName = cat.name;
+                                    _matchScore =
+                                        1.0; // Manual selection = 100%
+                                  });
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: screenHeight * 0.012),
+
+                      // ── Note Card ──
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(screenWidth * 0.04),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white.withOpacity(0.05)
+                              : Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.sticky_note_2_outlined,
+                              size: 20,
+                              color: Colors.grey.shade600,
+                            ),
+                            SizedBox(width: screenWidth * 0.03),
+                            Expanded(
+                              child: Text(
+                                _parsedNote ?? 'Voice Entry',
+                                style: TextStyle(
+                                  fontSize: screenWidth * 0.038,
+                                  fontStyle: FontStyle.italic,
                                 ),
                               ),
-                              // Dropdown to override category
-                              DropdownButton<String>(
-                                value: _parsedCategory,
-                                underline: const SizedBox(),
-                                icon: Icon(Icons.swap_horiz, color: Theme.of(context).colorScheme.primary),
-                                items: categories.map((c) => DropdownMenuItem(
-                                  value: c.id,
-                                  child: Text(c.name, style: TextStyle(fontSize: screenWidth * 0.035)),
-                                )).toList(),
-                                onChanged: (val) {
-                                  if (val != null) {
-                                    final cat = categories.firstWhere((c) => c.id == val);
-                                    setState(() {
-                                      _parsedCategory = val;
-                                      _matchedCategoryName = cat.name;
-                                      _matchScore = 1.0; // Manual selection = 100%
-                                    });
-                                  }
-                                },
-                              ),
-                            ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: screenHeight * 0.025),
+
+                      // ── Confirm Button ──
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: FilledButton.icon(
+                          onPressed: _confirmTransaction,
+                          icon: const Icon(Icons.check_circle_outline),
+                          label: const Text(
+                            'Confirm & Add',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                        SizedBox(height: screenHeight * 0.012),
-                        
-                        // ── Note Card ──
-                        Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.all(screenWidth * 0.04),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).brightness == Brightness.dark 
-                                ? Colors.white.withOpacity(0.05)
-                                : Colors.grey.shade50,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.sticky_note_2_outlined, size: 20, color: Colors.grey.shade600),
-                              SizedBox(width: screenWidth * 0.03),
-                              Expanded(
-                                child: Text(
-                                  _parsedNote ?? 'Voice Entry',
-                                  style: TextStyle(fontSize: screenWidth * 0.038, fontStyle: FontStyle.italic),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(height: screenHeight * 0.025),
-                        
-                        // ── Confirm Button ──
-                        SizedBox(
-                          width: double.infinity,
-                          height: 52,
-                          child: FilledButton.icon(
-                            onPressed: _confirmTransaction,
-                            icon: const Icon(Icons.check_circle_outline),
-                            label: const Text('Confirm & Add', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                          ),
-                        ),
+                      ),
                     ],
-                    
+
                     const Spacer(),
                   ],
                 ),
@@ -719,38 +1087,40 @@ class _VoiceAddScreenState extends State<VoiceAddScreen> {
 
 // Simple AvatarGlow implementation if package not added, or replaced with simple animation container
 class AvatarGlow extends StatelessWidget {
-    final bool animate;
-    final Color glowColor;
-    final Duration duration;
-    final bool repeat;
-    final Widget child;
-    
-    const AvatarGlow({
-        super.key, 
-        required this.animate, 
-        required this.glowColor, 
-        this.duration = const Duration(milliseconds: 2000), 
-        this.repeat = true, 
-        required this.child
-    });
+  final bool animate;
+  final Color glowColor;
+  final Duration duration;
+  final bool repeat;
+  final Widget child;
 
-    @override
-    Widget build(BuildContext context) {
-        final screenWidth = MediaQuery.of(context).size.width;
-        
-        return Container(
-            padding: EdgeInsets.all(screenWidth * 0.05),
-            decoration: animate ? BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [
-                    BoxShadow(
-                        color: glowColor.withOpacity(0.5),
-                        blurRadius: screenWidth * 0.05,
-                        spreadRadius: screenWidth * 0.025,
-                    )
-                ]
-            ) : null,
-            child: child,
-        );
-    }
+  const AvatarGlow({
+    super.key,
+    required this.animate,
+    required this.glowColor,
+    this.duration = const Duration(milliseconds: 2000),
+    this.repeat = true,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    return Container(
+      padding: EdgeInsets.all(screenWidth * 0.05),
+      decoration: animate
+          ? BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: glowColor.withOpacity(0.5),
+                  blurRadius: screenWidth * 0.05,
+                  spreadRadius: screenWidth * 0.025,
+                ),
+              ],
+            )
+          : null,
+      child: child,
+    );
+  }
 }
